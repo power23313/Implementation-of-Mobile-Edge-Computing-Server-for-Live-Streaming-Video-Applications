@@ -1,0 +1,31 @@
+# interface1: to eNB
+# interface2: to CN
+
+NIC1="enp1s0f2"   #interface1 name 
+MAC1="a0:36:9f:80:aa:2a" #MAC address of interface1 e.g.: 00:05:1b:a2:b2:f6
+NIC2="enp1s0f3"   #interface2 name
+MAC2="a0:36:9f:80:aa:2b" #MAC address of interface2 e.g.: 9c:eb:e8:30:4e:7c 
+
+
+# CN IP:  10.0.0.1
+# eNB IP: 10.0.0.4
+# UE subnet: 192.172.0.0/24
+
+# change 172.17.0.0 subnet IP to match your network configurations
+
+
+sudo ifconfig $NIC1 up
+sudo ifconfig $NIC2 up
+sudo ifconfig $NIC1 10.0.1.2/32
+sudo ifconfig $NIC2 10.0.1.3/32
+sudo arp -i $NIC1 -s 10.0.0.1 $MAC1 pub
+sudo arp -i $NIC2 -s 10.0.0.4 $MAC2 pub
+sudo route add -host 10.0.0.1  $NIC2
+sudo route add -host 10.0.0.4  $NIC1
+sudo route add -net 172.16.0.0 gw 10.0.0.4 netmask 255.255.255.0 dev $NIC1
+
+
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo iptables -t nat -A PREROUTING -p udp -d 10.0.0.1 --dport 2152 -j DNAT --to-destination 10.0.1.2:2152
+sudo iptables -t nat -A PREROUTING -p udp -d 10.0.0.4 --dport 2152 -j DNAT --to-destination 10.0.1.3:2152
+
